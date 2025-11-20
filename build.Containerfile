@@ -16,7 +16,7 @@
 # directory. Use `apksigner` to sign before installing via `adb install`.
 #
 
-FROM debian:bullseye-backports AS build-stage
+FROM debian:bullseye AS build-stage
 
 # install debian packages
 ENV DEBIAN_FRONTEND noninteractive

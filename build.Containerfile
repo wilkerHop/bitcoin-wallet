@@ -24,7 +24,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     /bin/rm -f /etc/apt/apt.conf.d/docker-clean && \
     /usr/bin/apt-get update && \
-    /usr/bin/apt-get --yes --no-install-recommends install disorderfs openjdk-11-jdk-headless gradle sdkmanager && \
+    /usr/bin/apt-get --yes --no-install-recommends install disorderfs openjdk-11-jdk-headless gradle wget unzip && \
     /bin/ln -fs /usr/share/zoneinfo/CET /etc/localtime && \
     /usr/sbin/dpkg-reconfigure --frontend noninteractive tzdata && \
     /bin/ln -s /proc/self/mounts /etc/mtab && \
@@ -37,10 +37,20 @@ USER builder
 WORKDIR /home/builder
 COPY --chown=builder / project/
 
-# accept SDK licenses
+# install Android Command Line Tools
 ENV ANDROID_HOME /home/builder/android-sdk
+ENV PATH ${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
+
 RUN --mount=target=/home/builder/android-sdk,type=cache,uid=1000,gid=1000,sharing=locked \
-    yes | /usr/bin/sdkmanager --licenses >/dev/null
+    mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools && \
+    mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
+    rm /tmp/cmdline-tools.zip
+
+# accept SDK licenses
+RUN --mount=target=/home/builder/android-sdk,type=cache,uid=1000,gid=1000,sharing=locked \
+    yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
 
 # build project
 RUN --mount=target=/home/builder/android-sdk,type=cache,uid=1000,gid=1000,sharing=locked \
